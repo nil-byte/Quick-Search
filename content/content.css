@@ -1,0 +1,493 @@
+/* 搜索框容器 */
+#quick-search-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2147483647; /* 最高层级 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 15vh;
+  transition: all 0.4s var(--qs-timing-function);
+  pointer-events: none; /* 默认不接收任何事件 */
+  visibility: hidden; /* 默认隐藏 */
+}
+
+/* 显示状态时的容器样式 */
+#quick-search-container.quick-search-visible {
+  pointer-events: all; /* 接收所有事件 */
+  visibility: visible;
+}
+
+/* 隐藏状态 */
+.quick-search-hidden {
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* 显示状态 */
+.quick-search-visible {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+/* 基础变量 - 遵循苹果设计系统 */
+:root {
+  /* 主色调 */
+  --qs-primary: #007AFF;
+  --qs-primary-hover: #0066CC;
+  
+  /* 文字颜色 */
+  --qs-text-primary: #000000;
+  --qs-text-secondary: rgba(0, 0, 0, 0.85);
+  --qs-text-tertiary: rgba(0, 0, 0, 0.65);
+  
+  /* 图标颜色 */
+  --qs-icon-primary: rgba(0, 0, 0, 0.85);
+  --qs-icon-secondary: rgba(0, 0, 0, 0.65);
+  
+  /* 背景色 */
+  --qs-bg-base: #FFFFFF;
+  --qs-bg-elevated: rgba(255, 255, 255, 0.85);
+  --qs-bg-overlay: rgba(255, 255, 255, 0.95);
+  
+  /* 特效颜色 */
+  --qs-backdrop: rgba(0, 0, 0, 0.2);
+  --qs-shadow: rgba(0, 0, 0, 0.08);
+  --qs-border: rgba(0, 0, 0, 0.1);
+  --qs-highlight: rgba(0, 122, 255, 0.08);
+  
+  /* 交互状态 */
+  --qs-hover: rgba(0, 0, 0, 0.05);
+  --qs-active: rgba(0, 0, 0, 0.1);
+  
+  /* 动画曲线 */
+  --qs-timing-function: cubic-bezier(0.28, 0.16, 0.22, 1);
+}
+
+/* 高对比度模式 */
+@media screen and (prefers-contrast: more) {
+  :root {
+    --qs-text-color: #000000;
+    --qs-text-secondary: #1D1D1F;
+    --qs-background-color: rgba(255, 255, 255, 0.98);
+    --qs-surface-color: #FFFFFF;
+    --qs-border-color: rgba(0, 0, 0, 0.3);
+    --qs-shadow-color: rgba(0, 0, 0, 0.2);
+    --qs-icon-color: #1D1D1F;
+    --qs-placeholder-color: #48484A;
+  }
+}
+
+/* 深色模式变量 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --qs-text-primary: #FFFFFF;
+    --qs-text-secondary: rgba(255, 255, 255, 0.85);
+    --qs-text-tertiary: rgba(255, 255, 255, 0.65);
+    --qs-icon-primary: rgba(255, 255, 255, 0.85);
+    --qs-icon-secondary: rgba(255, 255, 255, 0.65);
+    --qs-bg-base: #000000;
+    --qs-bg-elevated: rgba(28, 28, 30, 0.75);
+    --qs-bg-overlay: rgba(44, 44, 46, 0.85);
+    --qs-backdrop: rgba(0, 0, 0, 0.6);
+    --qs-shadow: rgba(0, 0, 0, 0.3);
+    --qs-border: rgba(255, 255, 255, 0.1);
+    --qs-highlight: rgba(0, 122, 255, 0.15);
+    --qs-hover: rgba(255, 255, 255, 0.1);
+    --qs-active: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* 系统主题跟随 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --qs-text-color: #f0f0f0;
+    --qs-text-secondary: #aaa;
+    --qs-background-color: rgba(30, 30, 30, 0.8);
+    --qs-surface-color: rgba(40, 40, 40, 0.9);
+    --qs-border-color: rgba(255, 255, 255, 0.1);
+    --qs-shadow-color: rgba(0, 0, 0, 0.3);
+    --qs-backdrop-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* 背景遮罩 */
+#quick-search-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--qs-backdrop);
+  backdrop-filter: blur(0px); /* 初始无模糊 */
+  -webkit-backdrop-filter: blur(0px);
+  transition: all 0.3s var(--qs-timing-function);
+  cursor: pointer; /* 指示可点击关闭 */
+}
+
+/* 搜索框 */
+#quick-search-box {
+  position: relative;
+  width: 600px;
+  height: 60px;
+  background-color: var(--qs-bg-elevated);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px var(--qs-shadow);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 1;
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid var(--qs-border);
+  transition: all 0.3s var(--qs-timing-function);
+}
+
+/* 搜索框聚焦时的效果 */
+#quick-search-box:focus-within {
+  background-color: var(--qs-bg-overlay);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px var(--qs-shadow);
+}
+
+/* 搜索引擎图标 */
+#quick-search-engine-icon {
+  width: 30px;
+  height: 30px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+#quick-search-engine-icon:hover {
+  opacity: 1;
+}
+
+#quick-search-engine-icon img {
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+#quick-search-engine-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--qs-text-secondary);
+}
+
+/* 字母图标样式 */
+#quick-search-engine-icon .letter-icon,
+.quick-search-suggestion-icon .letter-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* 搜索输入框 */
+#quick-search-input {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-size: 17px;
+  color: var(--qs-text-primary);
+  font-family: -apple-system, SF Pro Text, SF Pro Icons;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  padding: 0;
+  margin: 0 12px;
+  outline: none;
+}
+
+/* 输入框占位符样式 */
+#quick-search-input::placeholder {
+  color: var(--qs-text-tertiary);
+  opacity: 1;
+  font-weight: 400;
+}
+
+/* 输入时的按键反馈 */
+#quick-search-input:focus {
+  transform: scale(1.01);
+}
+
+/* 清除按钮 */
+#quick-search-clear {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: all 0.2s var(--qs-timing-function);
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+#quick-search-clear svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--qs-text-primary);
+}
+
+#quick-search-clear:hover {
+  opacity: 1;
+  background-color: var(--qs-hover);
+  transform: scale(1.1);
+}
+
+/* 设置按钮 */
+#quick-search-settings {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s var(--qs-timing-function);
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+#quick-search-settings svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--qs-text-primary);
+}
+
+#quick-search-settings:hover {
+  opacity: 1;
+  background-color: var(--qs-hover);
+  transform: scale(1.1);
+}
+
+/* 搜索建议容器 */
+#quick-search-suggestions {
+  position: relative;
+  width: 600px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 12px;
+  border-radius: 16px;
+  z-index: 1;
+  transition: all 0.3s var(--qs-timing-function);
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+}
+
+/* 搜索建议项 */
+.quick-search-suggestion {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background-color: var(--qs-bg-elevated);
+  border-radius: 14px;
+  border: 1px solid var(--qs-border);
+  cursor: pointer;
+  transition: all 0.3s var(--qs-timing-function);
+}
+
+.quick-search-suggestion:hover {
+  background-color: var(--qs-hover);
+  transform: translateX(4px);
+}
+
+.quick-search-suggestion.selected {
+  background-color: var(--qs-highlight);
+  border-color: var(--qs-primary);
+  box-shadow: 0 2px 8px var(--qs-shadow);
+}
+
+.quick-search-suggestion.selected .quick-search-suggestion-name {
+  color: var(--qs-primary);
+  font-weight: 500;
+}
+
+.quick-search-suggestion.selected .quick-search-suggestion-icon svg {
+  fill: var(--qs-primary);
+  opacity: 1;
+}
+
+.quick-search-suggestion.selected .quick-search-suggestion-category {
+  color: var(--qs-primary);
+  opacity: 0.8;
+}
+
+/* 搜索建议图标 */
+.quick-search-suggestion-icon {
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+}
+
+.quick-search-suggestion-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--qs-text-secondary);
+}
+
+.quick-search-suggestion-icon img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* 搜索建议信息 */
+.quick-search-suggestion-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+.quick-search-suggestion-name {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--qs-text-primary);
+  letter-spacing: -0.022em;
+}
+
+.quick-search-suggestion-category {
+  font-size: 13px;
+  color: var(--qs-text-secondary);
+  margin-left: 8px;
+}
+
+/* 搜索建议打开模式 */
+.quick-search-suggestion-mode {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+/* 滚动条样式 */
+#quick-search-suggestions::-webkit-scrollbar {
+  width: 8px;
+}
+
+#quick-search-suggestions::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#quick-search-suggestions::-webkit-scrollbar-thumb {
+  background-color: var(--qs-text-tertiary);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+#quick-search-suggestions::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* 按键视觉反馈 */
+.key-pressed {
+  transform: scale(1.02);
+}
+
+/* 搜索框右侧按钮的悬停效果 */
+#quick-search-clear:hover,
+#quick-search-settings:hover {
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+/* 搜索执行时的提交动画 */
+.search-submit {
+  animation: submit-animation 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes submit-animation {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0;
+  }
+}
+
+/* 深色模式下的占位符样式 */
+@media (prefers-color-scheme: dark) {
+  #quick-search-input::placeholder {
+    opacity: 0.5;
+  }
+}
+
+/* 按钮基础样式 */
+.quick-search-button,
+#quick-search-clear,
+#quick-search-settings {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  transition: all 0.2s var(--qs-timing-function);
+  opacity: 0.85;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+/* 按钮图标样式 */
+.quick-search-button svg,
+#quick-search-clear svg,
+#quick-search-settings svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--qs-icon-primary);
+  transition: all 0.2s var(--qs-timing-function);
+}
+
+/* 按钮悬停效果 */
+.quick-search-button:hover,
+#quick-search-clear:hover,
+#quick-search-settings:hover {
+  opacity: 1;
+  background-color: var(--qs-hover);
+  transform: scale(1.1);
+}
+
+.quick-search-button:hover svg,
+#quick-search-clear:hover svg,
+#quick-search-settings:hover svg {
+  fill: var(--qs-text-primary);
+}
